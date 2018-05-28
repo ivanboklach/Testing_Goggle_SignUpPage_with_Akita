@@ -1,0 +1,80 @@
+buildscript {
+    repositories {
+        maven { url "http://mvn/artifactory/public" }
+        maven { url 'http://mvn/artifactory/gradleplugins' }
+    }
+
+    dependencies {
+        classpath "org.jfrog.buildinfo:build-info-extractor-gradle:4.4.0"
+        classpath 'ru.alfalab.gradle:cucumber-reporting-gradle-plugin:0.1.0'
+        classpath 'ru.alfalab.gradle:cucumber-parallel-test-gradle-plugin:0.2.1'
+    }
+}
+
+repositories {
+    maven { url "http://mvn/artifactory/public" }
+    maven { url "http://mvn/artifactory/thirdparty" }
+    maven { url "http://mvn/artifactory/Autotests" }
+}
+
+apply plugin: 'java'
+apply plugin: 'groovy'
+apply plugin: 'ru.alfalab.cucumber-reporting'
+apply plugin: 'ru.alfalab.cucumber-parallel-test'
+
+description = "Testing Goggle SignUp page with Akita"
+generateRunner.glue = ["ru.alfabank.steps", "steps"]
+
+
+if (project.hasProperty('projVersion')) {
+    project.version = project.projVersion
+} else {
+    project.version = '1.0.0'
+}
+
+dependencies {
+    compile(group: 'ru.alfabank.tests', name: 'akita', version: '3.3.0')
+}
+
+compileJava.options.encoding = 'UTF-8'
+compileTestJava.options.encoding = 'UTF-8'
+
+test {
+    maxParallelForks = 1
+    ignoreFailures = false
+    jvmArgs += "-Dprofile=${profile}"
+    jvmArgs += "-Dselenide.pageLoadStrategy=none"
+
+    jvmArgs += "-Dselenide.browser=ru.alfabank.tests.core.drivers.CustomDriverProvider"
+
+
+    if (tag) {
+        jvmArgs += "-Dcucumber.options=--tags ${tag}"
+    }
+    if (browser) {
+        jvmArgs += "-Dbrowser=${browser}"
+    }
+    if (remoteUrl) {
+        jvmArgs += "-DremoteUrl=${remoteUrl}"
+    }
+    if (browserVersion) {
+        jvmArgs += "-DbrowserVersion=${browserVersion}"
+    }
+    if (height) {
+        jvmArgs += "-Dheight=${height}"
+    }
+    if (width) {
+        jvmArgs += "-Dwidth=${width}"
+    }
+
+    reports {
+        html.enabled = false
+        junitXml.enabled = false
+    }
+}
+
+task makeZip(type: Zip) {
+    from('build/reports/cucumber') {
+        into("${project.version}-testReport")
+    }
+}
